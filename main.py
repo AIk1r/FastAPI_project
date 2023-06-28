@@ -1,49 +1,11 @@
-import models
-import uvicorn
-from fastapi import FastAPI, HTTPException, Depends, Response, status, Request
-from fastapi_sqlalchemy import DBSessionMiddleware, db
-from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from sqlalchemy.orm import Session
-
-from schema import Book as SchemaBook
-from schema import Author as SchemaAuthor
-
-from schema import Book, BookUpdate
-from schema import Author
-
-from models import Book as ModelBook
-from models import Author as ModelAuthor
-from models import get_db, SessionLocal, DBSession
-
-import os
-from dotenv import load_dotenv
-
-load_dotenv('.env')
-
-app = FastAPI()
-
-origins = [
-    '*'
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-# to avoid csrftokenError
+# Добавляем middleware для работы с базой данных
 app.add_middleware(DBSessionMiddleware, db_url=os.environ['DATABASE_URL'])
-
 
 @app.get("/")
 async def root():
     return {"message": "hello world"}
 
-
+# Создаем книгу
 @app.post('/book/', response_model=SchemaBook)
 async def book(book: SchemaBook):
     db_book = ModelBook(title=book.title, rating=book.rating, author_id=book.author_id)
@@ -51,13 +13,13 @@ async def book(book: SchemaBook):
     db.session.commit()
     return db_book
 
-
+# Получаем список всех книг
 @app.get('/book/')
 async def book():
     book = db.session.query(ModelBook).all()
     return book
 
-
+# Редактируем книгу
 @app.patch("/book/{book_id}")
 async def edit_book(book_id: int, book: BookUpdate, db: Session = Depends(get_db)):
     book_query = db.query(ModelBook).filter(ModelBook.id == book_id).first()
@@ -69,7 +31,7 @@ async def edit_book(book_id: int, book: BookUpdate, db: Session = Depends(get_db
     db.commit()
     return book_query
 
-
+# Удаляем книгу
 @app.delete('/book/{book_id}')
 def delete_post(book_id: int, db: Session = Depends(get_db)):
     book_query = db.query(models.Book).filter(models.Book.id == book_id)
@@ -81,7 +43,7 @@ def delete_post(book_id: int, db: Session = Depends(get_db)):
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-
+# Создаем автора
 @app.post('/author/', response_model=SchemaAuthor)
 async def author(author: SchemaAuthor):
     db_author = ModelAuthor(name=author.name, age=author.age)
@@ -89,13 +51,12 @@ async def author(author: SchemaAuthor):
     db.session.commit()
     return db_author
 
-
+# Получаем список всех авторов
 @app.get('/author/')
 async def author():
     author = db.session.query(ModelAuthor).all()
     return author
 
-
-# To run locally
+# Запускаем приложение
 if __name__ == '__main__':
     uvicorn.run(app, host='0.0.0.0', port=8000)
