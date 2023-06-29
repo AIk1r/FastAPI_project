@@ -7,3 +7,5 @@ You can look at the project itself and see for yourself, in the future it will b
 You will need to use the following commands to create the table:
 alembic revision --autogenerate -m "New Migrations"
 alembic upgrade head
+
+Checked the functionality here: https://hoppscotch.io
